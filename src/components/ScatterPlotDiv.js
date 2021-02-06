@@ -30,7 +30,7 @@ export default function ScatterPlotDiv (props) {
         allData.push({
             "x" : xval,
             "y" : yval,
-            "label": "prova"
+            "label": "X: " + xval + " Y: "+yval
         });
     });
     return (
