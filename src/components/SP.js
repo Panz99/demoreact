@@ -35,7 +35,6 @@ export default function ScatterPlot (props) {
         var tip = d3Tip().attr('class', 'd3-tip').html(function (d) {
             return d.label;
         });
-        console.log(tip)
 
         // Select all circles and bind data
         let circles = select(chartArea).selectAll('circle').data(props.data);
