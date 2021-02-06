@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react'
-
+import React from 'react'
+import PropTypes from 'prop-types';
 import { CSVReader } from 'react-papaparse'
 
 export default function MyCSVReader( props ){
-    function handleOnDrop(data){
+  function handleOnDrop(data){
     props.onChange(data);
-    }
+  }
 
-  function handleOnError(err, file, inputElem, reason){
+  function handleOnError(err, /*file, inputElem, reason*/){
     console.log(err)
   }
 
@@ -23,10 +23,14 @@ export default function MyCSVReader( props ){
         onDrop={handleOnDrop}
         onError={handleOnError}
         addRemoveButton
-        removeButtonColor='#659cef'
+        removeButtonColor='#ff0000'
         onRemoveFile={handleOnRemoveFile}
       >
         <span>Drop CSV file here or click to upload.</span>
       </CSVReader>
     )
+}
+
+MyCSVReader.propTypes = {
+  onChange : PropTypes.func
 }

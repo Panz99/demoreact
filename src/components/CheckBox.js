@@ -1,17 +1,24 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
+import PropTypes from 'prop-types';
 
 export default function CheckBox (props){
-    useEffect(() => {
-        console.log("Ho renderizzato la checkbox", props.dim.value);
-    })
     return (
-      <li className="list-group-item text-secondary" key={props.dim.value}>
+      <li className="list-group-item text-secondary" key={props.value}>
        <input className="form-check-input" 
-       key={props.dim.value}
+       key={props.value}
+       id={props.value}
        onChange={props.handleCheckChieldElement} 
        type="checkbox" 
-       checked={props.dim.isChecked} 
-       value={props.dim.value} /> {props.dim.value}
+       checked={props.isChecked} 
+       value={props.value} /> 
+       <label htmlFor={props.value} className="h-6">{props.value}</label>
       </li>
     )
+}
+
+CheckBox.propTypes = {
+  dim : PropTypes.object,
+  value: PropTypes.string,
+  isChecked: PropTypes.bool,
+  handleCheckChieldElement : PropTypes.func
 }
