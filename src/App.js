@@ -3,14 +3,15 @@ import React, {useState, useEffect} from "react";
 import MyCSVReader from './components/CsvReader.js';
 import DimensionsList from './components/DimList.js';
 import ScatterPlotDiv from './components/ScatterPlotDiv';
+//import ScatterPlotMatrixDiv from './components/ScatterPlotMatrixDiv';
 
 
-//const aux = []
 function App() {
   const [data, setData] = useState([]);
   const [dims, setDims] = useState([]);
   const [uData, setUData] = useState([]);
   const [test, setTest] = useState(false);
+  const [test2, setTest2] = useState(false);
   useEffect(() => {
     syncDimsData();
   }, [dims]);
@@ -31,9 +32,11 @@ function App() {
     
     let data = [];
     newData.forEach(val =>{
-      let line = [];
+      
+      var line = new Object();
       for (let i = 0; i < val.data.length; i++) {
-        line.push({"value" : val.data[i], "column": dims[i].value});
+        line[dims[i].value] = val.data[i]
+        //line.push({"value" : val.data[i], "column": dims[i].value});
       }
       data.push(line);
     });
@@ -43,12 +46,12 @@ function App() {
 
   function syncDimsData(){
     let aux = [];
-    data.forEach(d => { //qui ho un array di oggetti del tipo val, column
-      let line=[];  //qui salvo gli oggetti val, column se column = true
-      d.forEach(value => {
+    data.forEach(d => { //qui ho un oggetto con tutti i campi
+      let line= new Object();  //qui salvo i nuovi oggi con io campi true
+      Object.keys(d).forEach(key => {
         dims.forEach(dim => {
-          if(value.column === dim.value && dim.isChecked)
-            line.push(value);
+          if(key === dim.value && dim.isChecked)
+            line[key] = d[key];
         });
       });
       aux.push(line);
@@ -59,8 +62,13 @@ function App() {
     setDims(newDims);
   }
   function showGraph(){
-    console.log("click show graph");
     setTest(true);
+    setTest2(false);
+  }
+  
+  function showGraph2(){
+    setTest2(true);
+    setTest(false);
   }
   
   return (
@@ -78,8 +86,12 @@ function App() {
         <hr/>
         <button className="btn btn-primary m-2" onClick={showGraph}>Show graph</button>
         {test ?
-          (<ScatterPlotDiv data={uData}/>) : (null)
+          (<ScatterPlotDiv data={uData}/>) : (test2)
         }
+        <button className="btn btn-primary m-2" onClick={showGraph2}>Show graph</button>
+        {/*test2 ?
+          (<ScatterPlotMatrixDiv data={uData}/>) : (null)
+        */}
       </header>
     </div>
   );

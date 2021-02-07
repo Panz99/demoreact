@@ -59,7 +59,6 @@ SP.propTypes = {
 }
 export function Axis (props){
     const node = useRef(props.axis)
-    console.log(node.current);
     useEffect(() => {
         //const node = useRef(props.axis)
         select(node.current).call(props.scale)

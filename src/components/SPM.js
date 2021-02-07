@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+/*import React, { useEffect } from "react";
 import d3Tip from "d3-tip";
 import { scaleLinear, max, min, axisLeft, axisBottom, select} from "d3";
 import PropTypes from 'prop-types';
@@ -8,6 +8,9 @@ export default function ScatterPlot (props) {
     let xAxis, yAxis, chartArea, xScale, yScale;
     const drawWidth = props.width - props.margin.left - props.margin.right;
     const drawHeight = props.height - props.margin.top - props.margin.bottom;
+    const columns = Object.keys(props.data[0]);
+    const size = (props.width - (columns.length + 1) * props.padding) / columns.length + props.padding
+    
     useEffect(() => {
         update();
     });
@@ -59,10 +62,18 @@ export default function ScatterPlot (props) {
             .scale(xScale)
             .ticks(5, 's');
 
-        let yAxisFunction = axisLeft()
+        /*let yAxisFunction = axisLeft()
             .scale(yScale)
             .ticks(5, 's');
+        const axisy = d3.axisLeft()
+                .ticks(6)
+                .tickSize(-size * columns.length);
 
+        let yAxisFunction = g => g.selectAll("g").data(y).join("g")
+                .attr("transform", (d, i) => `translate(0,${i * size})`)
+                .each(function(d) { return select(this).call(axisy.scale(d)); })
+                .call(g => g.select(".domain").remove())
+                .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
         select(xAxis)
             .call(xAxisFunction);
 
@@ -82,35 +93,40 @@ export default function ScatterPlot (props) {
                 <g ref={(node) => { chartArea = node; }}
                     transform={`translate(${props.margin.left}, ${props.margin.top})`} />
 
-                {/* Axes */}
+                {/* Axes }
                 <g ref={(node) => { xAxis = node; }}
                     transform={`translate(${props.margin.left}, ${props.height - props.margin.bottom})`}></g>
                 <g ref={(node) => { yAxis = node; }}
                     transform={`translate(${props.margin.left}, ${props.margin.top})`}></g>
 
-                {/* Axis labels */}
+                {/* Axis labels 
                 <text className="axis-label" transform={`translate(${props.margin.left + drawWidth / 2}, 
                     ${props.height - props.margin.bottom + 30})`}>{props.xTitle}</text>
 
                 <text className="axis-label" transform={`translate(${props.margin.left - 30}, 
                     ${drawHeight / 2 + props.margin.top}) rotate(-90)`}>{props.yTitle}</text>
+                    }
             </svg>
         </div>
     )
 }
 ScatterPlot.propTypes = {
     data : PropTypes.array,
+    padding: PropTypes.number,
     width: PropTypes.number,
     height: PropTypes.number,
     radius: PropTypes.number,
     color: PropTypes.string,
     margin: PropTypes.object,
-    xTitle: PropTypes.string,
-    yTitle: PropTypes.string,
+    dim1Title: PropTypes.string,
+    dim2Title: PropTypes.string,
+    dim3Title: PropTypes.string,
+    dim4Title: PropTypes.string,
     title: PropTypes.string
 }
 ScatterPlot.defaultProps = {
-    data: [{ x: 10, y: 20 }, { x: 15, y: 35 }],
+    data: [{ x: 10, y: 20, z: 10, h: 20 }, { x: 15, y: 35, z: 15, h: 26  }],
+    padding: 20,
     width: 600,
     height: 600,
     radius: 5,
@@ -121,7 +137,9 @@ ScatterPlot.defaultProps = {
         top: 20,
         bottom: 50
     },
-    xTitle: "X Title",
-    yTitle: "Y Title",
+    dim1Title: "Dim 1 Title",
+    dim2Title: "Dim 2 Title",
+    dim3Title: "Dim 3 Title",
+    dim4Title: "Dim 4 Title",
     title: "Prova"
-};
+};*/
