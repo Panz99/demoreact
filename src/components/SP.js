@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
-import d3Tip from "d3-tip";
-import { scaleLinear, max, min, axisLeft, axisBottom, select} from "d3";
+//import d3Tip from "d3-tip";
+import { scaleLinear, max, min, axisLeft, axisBottom, select, scalePoint} from "d3";
 import PropTypes from 'prop-types';
 
 
@@ -13,22 +13,35 @@ export default function ScatterPlot (props) {
     });
     function updateScales() {
         // Calculate limits
-        let xMin = min(props.data, (d) => +d.x * .9);
-        let xMax = max(props.data, (d) => +d.x * 1.1);
-        let yMin = min(props.data, (d) => +d.y * .9);
-        let yMax = max(props.data, (d) => +d.y * 1.1);
+        let xMin = min(props.data, (d) => +d.x - (0.1*d.x));
+        let xMax = max(props.data, (d) => +d.x + (0.1*d.x));
+        let yMin = min(props.data, (d) => +d.y - (0.1*d.y));
+        let yMax = max(props.data, (d) => +d.y + (0.1*d.y));
 
-        // Define scales
-        xScale = scaleLinear().domain([xMin, xMax]).range([0, drawWidth]);
-        yScale = scaleLinear().domain([yMax, yMin]).range([0, drawHeight]);
+        if(!xMin && !xMax){
+            let xDomain = props.data.map(d => d.x);
+            xScale = scalePoint().domain([... new Set(xDomain)]).range([0, drawWidth]);
+        }else{
+            xScale = scaleLinear().domain([xMin, xMax]).range([0, drawWidth]);
+        }
+
+        if(!yMin && !yMax){
+            let yDomain = props.data.map(d => d.y);
+            yScale = scalePoint().domain([... new Set(yDomain)]).range([0, drawHeight]);
+
+        }else{
+            yScale = scaleLinear().domain([yMax, yMin]).range([0, drawHeight]);
+        }
+            
     }
     function updatePoints() {
         // Define hovers 
         // Add tip
-        var tip = d3Tip().attr('class', 'd3-tip').html(function (d) {
+        /*var tip = d3Tip().attr('class', 'd3-tip').html(function (d) {
             return d.label;
         });
-
+        console.log("tip: ", tip)
+        */
         // Select all circles and bind data
         let circles = select(chartArea).selectAll('circle').data(props.data);
 
@@ -38,8 +51,8 @@ export default function ScatterPlot (props) {
             .attr('r', props.radius)
             .attr('fill', props.color)
             .attr('label', (d) => d.label)
-            .on('mouseover', tip.show)
-            .on('mouseout', tip.hide)
+            //.on('mouseover', () => {alert("spostati")})
+            //.on('mouseout', tip.hide)
             .style('fill-opacity', 0.3)
             .transition().duration(500)
             .attr('cx', (d) => xScale(d.x))
@@ -52,15 +65,15 @@ export default function ScatterPlot (props) {
         circles.exit().remove();
 
         // Add hovers using the d3-tip library        
-        select(chartArea).call(tip);
+        //select(chartArea).call(tip);
     }
     function updateAxes() {
-        let xAxisFunction = axisBottom()
-            .scale(xScale)
+        let xAxisFunction = axisBottom(xScale)
+            //.scale(xScale)
             .ticks(5, 's');
 
-        let yAxisFunction = axisLeft()
-            .scale(yScale)
+        let yAxisFunction = axisLeft(yScale)
+            //.scale(yScale)
             .ticks(5, 's');
 
         select(xAxis)
@@ -79,7 +92,7 @@ export default function ScatterPlot (props) {
         <div className="bg-secondary p-4">
             <svg className="chart" width={props.width} height={props.height}>
                 <text transform={`translate(${props.margin.left},15)`}>{props.title}</text>
-                <g ref={(node) => { chartArea = node; }}
+                <g ref={(node) => {chartArea = node; }}
                     transform={`translate(${props.margin.left}, ${props.margin.top})`} />
 
                 {/* Axes */}

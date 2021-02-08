@@ -1,117 +1,124 @@
-/*import React, { useEffect } from "react";
-import d3Tip from "d3-tip";
-import { scaleLinear, max, min, axisLeft, axisBottom, select} from "d3";
+import React, {useEffect} from "react";
+import * as d3 from "d3"
 import PropTypes from 'prop-types';
+import { select } from "d3";
 
 
 export default function ScatterPlot (props) {
-    let xAxis, yAxis, chartArea, xScale, yScale;
-    const drawWidth = props.width - props.margin.left - props.margin.right;
-    const drawHeight = props.height - props.margin.top - props.margin.bottom;
-    const columns = Object.keys(props.data[0]);
-    const size = (props.width - (columns.length + 1) * props.padding) / columns.length + props.padding
     
+    //Sono i riferimenti ai g che ho costruito nel return.
+    let refSvg;
+    var 
+    size = 230,
+    padding = 20;
+    const data = props.data;
+    //var traits = Object.keys(data[0]);
+    var traits = props.dims;
+    var numberOfTraits = traits.length;
+    var x = d3.scaleLinear()
+        .range([padding / 2, size - padding / 2]);
+
+    var y = d3.scaleLinear()
+        .range([size - padding / 2, padding / 2]);
+
+    var xAxis = d3.axisBottom()
+        .scale(x)
+        .ticks(6); //quante tacchette sull'asse
+
+    var yAxis = d3.axisLeft()
+        .scale(y)
+        .ticks(6);
+
+    var color = d3.scaleOrdinal(d3.schemeCategory10);
+    var domainByTrait = {};
+    //per ogni dimensione ritorno il min e il max usando extent() in modo da trovare il dominio
+    traits.forEach(function(trait) {
+        domainByTrait[trait] = d3.extent(data, function(d) {return d[trait]; }); //CREDO che la funzione preleva da data tutta la colonna interessata
+    }); 
+    function cross(a, b) {
+        var c = [], n = a.length, m = b.length, i, j;
+        for (i = -1; ++i < n;) 
+            for (j = -1; ++j < m;) 
+                c.push({x: a[i], 
+                        i: i, 
+                        y: b[j], 
+                        j: j});
+        return c;
+    }
+    
+    function plot(p) {
+        var cell = d3.select(this);
+
+        x.domain(domainByTrait[p.x]);
+        y.domain(domainByTrait[p.y]);
+
+        cell.append("rect")
+                .attr("class", "frame")
+                .attr("x", padding / 2)
+                .attr("y", padding / 2)
+                .attr("width", size - padding)
+                .attr("height", size - padding);
+
+        cell.selectAll("circle")
+            .data(data)
+        .enter().append("circle")
+            .attr("cx", function(d) { return x(d[p.x]); })
+            .attr("cy", function(d) { return y(d[p.y]); })
+            .attr("r", 4)
+            .style("fill", function(d) { console.log(props.dimColor); return color(d[props.dimColor]); });
+    }
     useEffect(() => {
-        update();
-    });
-    function updateScales() {
-        // Calculate limits
-        let xMin = min(props.data, (d) => +d.x * .9);
-        let xMax = max(props.data, (d) => +d.x * 1.1);
-        let yMin = min(props.data, (d) => +d.y * .9);
-        let yMax = max(props.data, (d) => +d.y * 1.1);
+        let svg = select(refSvg);
+        svg.append("g") //cosa fa??
+        .attr("transform", "translate(" + padding + "," + padding / 2 + ")");
+        svg.selectAll(".x.axis") 
+        .data(traits) 
+        .enter() 
+        .append("g") 
+            .attr("class", "x axis")
+            .attr("transform", function(d, i) { return "translate(" + (numberOfTraits - i - 1) * size + ",0)"; }) //controllare cosa fa di specifico
+            .each(function(d) { //Invokes the specified function for each element in the current selection, passing in the current datum d and index i, with the this context of the current DOM element
+                x.domain(domainByTrait[d]); //x è la scala, gli imposta il dominio
+                d3.select(this).call(xAxis); //e dopo gli assegna l'asse con la scala di "x" settata alla riga precedente
+            });
 
-        // Define scales
-        xScale = scaleLinear().domain([xMin, xMax]).range([0, drawWidth]);
-        yScale = scaleLinear().domain([yMax, yMin]).range([0, drawHeight]);
-    }
-    function updatePoints() {
-        // Define hovers 
-        // Add tip
-        var tip = d3Tip().attr('class', 'd3-tip').html(function (d) {
-            return d.label;
-        });
+         svg.selectAll(".y.axis")
+         .data(traits)
+         .enter().append("g")
+             .attr("class", "y axis")
+             .attr("transform", function(d, i) { return "translate(0," + i * size + ")"; })
+         .each(function(d) { y.domain(domainByTrait[d]); d3.select(this).call(yAxis); });
 
-        // Select all circles and bind data
-        let circles = select(chartArea).selectAll('circle').data(props.data);
+         var cell;
+         cell = svg.selectAll(".cell")
+             .data(cross(traits, traits)) //d3.cross returns an array of arrays representing the Cartesian product of the given iterables. For example, given two arrays A and B, it returns an array of pairs [a, b] for each a in A and b in B.
+             //quindi abbiamo tutte le possibili coppie tra le varie dimensioni, ora creo il "g" che ospita il grafichino
+             .enter().append("g")
+                 .attr("class", "cell")
+                 .attr("transform", function(d) { return "translate(" + (numberOfTraits - d.i - 1) * size + "," + d.j * size + ")"; })
+             //creo il grafichino
+             .each(plot);
 
-        // Use the .enter() method to get your entering elements, and assign their positions
-        circles.enter().append('circle')
-            .merge(circles)
-            .attr('r', props.radius)
-            .attr('fill', props.color)
-            .attr('label', (d) => d.label)
-            .on('mouseover', tip.show)
-            .on('mouseout', tip.hide)
-            .style('fill-opacity', 0.3)
-            .transition().duration(500)
-            .attr('cx', (d) => xScale(d.x))
-            .attr('cy', (d) => yScale(d.y))
-            .style('stroke', "black")
-            .style('stroke-width', (d) => d.selected == true ? "3px" : "0px")
-
-
-        // Use the .exit() and .remove() methods to remove elements that are no longer in the data
-        circles.exit().remove();
-
-        // Add hovers using the d3-tip library        
-        select(chartArea).call(tip);
-    }
-    function updateAxes() {
-        let xAxisFunction = axisBottom()
-            .scale(xScale)
-            .ticks(5, 's');
-
-        /*let yAxisFunction = axisLeft()
-            .scale(yScale)
-            .ticks(5, 's');
-        const axisy = d3.axisLeft()
-                .ticks(6)
-                .tickSize(-size * columns.length);
-
-        let yAxisFunction = g => g.selectAll("g").data(y).join("g")
-                .attr("transform", (d, i) => `translate(0,${i * size})`)
-                .each(function(d) { return select(this).call(axisy.scale(d)); })
-                .call(g => g.select(".domain").remove())
-                .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
-        select(xAxis)
-            .call(xAxisFunction);
-
-        select(yAxis)
-            .call(yAxisFunction);
-    }
-    function update() {
-        updateScales();
-        updateAxes();
-        updatePoints();
-    }
-    
+             cell.filter(function(d) { return d.i === d.j; }) //toglie quelle uguali
+             .append("text")
+                 .attr("x", padding)
+                 .attr("y", padding)
+                 .attr("dy", ".71em")
+             .text(function(d) { return d.x; });
+    })
+     
     return (
         <div className="bg-secondary p-4">
-            <svg className="chart" width={props.width} height={props.height}>
+            <svg ref={(node) => { console.log("render"); refSvg = node; }} width={size * numberOfTraits + padding} height={size * numberOfTraits + padding}>
                 <text transform={`translate(${props.margin.left},15)`}>{props.title}</text>
-                <g ref={(node) => { chartArea = node; }}
-                    transform={`translate(${props.margin.left}, ${props.margin.top})`} />
-
-                {/* Axes }
-                <g ref={(node) => { xAxis = node; }}
-                    transform={`translate(${props.margin.left}, ${props.height - props.margin.bottom})`}></g>
-                <g ref={(node) => { yAxis = node; }}
-                    transform={`translate(${props.margin.left}, ${props.margin.top})`}></g>
-
-                {/* Axis labels 
-                <text className="axis-label" transform={`translate(${props.margin.left + drawWidth / 2}, 
-                    ${props.height - props.margin.bottom + 30})`}>{props.xTitle}</text>
-
-                <text className="axis-label" transform={`translate(${props.margin.left - 30}, 
-                    ${drawHeight / 2 + props.margin.top}) rotate(-90)`}>{props.yTitle}</text>
-                    }
+                
             </svg>
         </div>
     )
 }
 ScatterPlot.propTypes = {
     data : PropTypes.array,
+    dims: PropTypes.array,
     padding: PropTypes.number,
     width: PropTypes.number,
     height: PropTypes.number,
@@ -122,6 +129,7 @@ ScatterPlot.propTypes = {
     dim2Title: PropTypes.string,
     dim3Title: PropTypes.string,
     dim4Title: PropTypes.string,
+    dimColor: PropTypes.string,
     title: PropTypes.string
 }
 ScatterPlot.defaultProps = {
@@ -142,4 +150,4 @@ ScatterPlot.defaultProps = {
     dim3Title: "Dim 3 Title",
     dim4Title: "Dim 4 Title",
     title: "Prova"
-};*/
+};

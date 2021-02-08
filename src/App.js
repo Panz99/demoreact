@@ -3,7 +3,7 @@ import React, {useState, useEffect} from "react";
 import MyCSVReader from './components/CsvReader.js';
 import DimensionsList from './components/DimList.js';
 import ScatterPlotDiv from './components/ScatterPlotDiv';
-//import ScatterPlotMatrixDiv from './components/ScatterPlotMatrixDiv';
+import ScatterPlotMatrixDiv from './components/ScatterPlotMatrixDiv';
 
 
 function App() {
@@ -36,7 +36,6 @@ function App() {
       var line = new Object();
       for (let i = 0; i < val.data.length; i++) {
         line[dims[i].value] = val.data[i]
-        //line.push({"value" : val.data[i], "column": dims[i].value});
       }
       data.push(line);
     });
@@ -86,12 +85,12 @@ function App() {
         <hr/>
         <button className="btn btn-primary m-2" onClick={showGraph}>Show graph</button>
         {test ?
-          (<ScatterPlotDiv data={uData}/>) : (test2)
+          (<ScatterPlotDiv data={uData}/>) : (null)
         }
         <button className="btn btn-primary m-2" onClick={showGraph2}>Show graph</button>
-        {/*test2 ?
+        {test2 ?
           (<ScatterPlotMatrixDiv data={uData}/>) : (null)
-        */}
+        }
       </header>
     </div>
   );
