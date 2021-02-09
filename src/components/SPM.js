@@ -1,40 +1,20 @@
 import React, {useEffect} from "react";
 import * as d3 from "d3"
 import PropTypes from 'prop-types';
-import { select } from "d3";
+import { select} from "d3";
 
 
 export default function ScatterPlot (props) {
     
     //Sono i riferimenti ai g che ho costruito nel return.
-    let refSvg;
-    var 
-    size = 230,
-    padding = 20;
+    let refSvg, svg;
+    let xAxis, yAxis, xScale, yScale, domainByTrait={};
+    const size = props.size, padding = props.padding, legendRectSize = 18, legendSpacing = 4;
     const data = props.data;
-    //var traits = Object.keys(data[0]);
-    var traits = props.dims;
-    var numberOfTraits = traits.length;
-    var x = d3.scaleLinear()
-        .range([padding / 2, size - padding / 2]);
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+    const traits = props.dims;
+    const numberOfTraits = traits.length;
 
-    var y = d3.scaleLinear()
-        .range([size - padding / 2, padding / 2]);
-
-    var xAxis = d3.axisBottom()
-        .scale(x)
-        .ticks(6); //quante tacchette sull'asse
-
-    var yAxis = d3.axisLeft()
-        .scale(y)
-        .ticks(6);
-
-    var color = d3.scaleOrdinal(d3.schemeCategory10);
-    var domainByTrait = {};
-    //per ogni dimensione ritorno il min e il max usando extent() in modo da trovare il dominio
-    traits.forEach(function(trait) {
-        domainByTrait[trait] = d3.extent(data, function(d) {return d[trait]; }); //CREDO che la funzione preleva da data tutta la colonna interessata
-    }); 
     function cross(a, b) {
         var c = [], n = a.length, m = b.length, i, j;
         for (i = -1; ++i < n;) 
@@ -49,68 +29,137 @@ export default function ScatterPlot (props) {
     function plot(p) {
         var cell = d3.select(this);
 
-        x.domain(domainByTrait[p.x]);
-        y.domain(domainByTrait[p.y]);
+        xScale.domain(domainByTrait[p.x]);
+        yScale.domain(domainByTrait[p.y]);
 
         cell.append("rect")
-                .attr("class", "frame")
-                .attr("x", padding / 2)
-                .attr("y", padding / 2)
-                .attr("width", size - padding)
-                .attr("height", size - padding);
+            .attr("class", "frame")
+            .attr("x", padding / 2)
+            .attr("y", padding / 2)
+            .attr("width", size - padding)
+            .attr("height", size - padding);
 
         cell.selectAll("circle")
             .data(data)
-        .enter().append("circle")
-            .attr("cx", function(d) { return x(d[p.x]); })
-            .attr("cy", function(d) { return y(d[p.y]); })
-            .attr("r", 4)
-            .style("fill", function(d) { console.log(props.dimColor); return color(d[props.dimColor]); });
+            .enter().append("circle")
+                .attr("cx", function(d) { return xScale(d[p.x]); })
+                .attr("cy", function(d) { return yScale(d[p.y]); })
+                .attr("r", 4)
+                .style("fill", function(d) { return color(d[props.dimColor]); });
     }
     useEffect(() => {
-        let svg = select(refSvg);
-        svg.append("g") //cosa fa??
-        .attr("transform", "translate(" + padding + "," + padding / 2 + ")");
-        svg.selectAll(".x.axis") 
+        svg = select(refSvg);
+        update();
+    })
+    function updateScales(){
+        traits.forEach(function(trait) {
+            domainByTrait[trait] = d3.extent(data, function(d) {return +d[trait]; });
+        }); //calcola i massimi e i minimi
+        console.log(domainByTrait)
+        xScale = d3.scaleLinear()
+                .range([padding / 2, size - padding / 2]);
+
+        yScale = d3.scaleLinear()
+                .range([size - padding / 2, padding / 2]);
+    }
+    function updateAxis(){
+
+        xAxis = d3.axisBottom(xScale)
+                .ticks(6) //quante tacchette sull'asse
+                .tickSize(size * numberOfTraits);
+        
+        yAxis = d3.axisLeft(yScale)
+                .ticks(6)
+                .tickSize(-size * numberOfTraits);
+
+        svg.selectAll(".x.axis").remove();
+        svg.selectAll(".x.axis")
         .data(traits) 
         .enter() 
         .append("g") 
             .attr("class", "x axis")
-            .attr("transform", function(d, i) { return "translate(" + (numberOfTraits - i - 1) * size + ",0)"; }) //controllare cosa fa di specifico
-            .each(function(d) { //Invokes the specified function for each element in the current selection, passing in the current datum d and index i, with the this context of the current DOM element
-                x.domain(domainByTrait[d]); //x è la scala, gli imposta il dominio
-                d3.select(this).call(xAxis); //e dopo gli assegna l'asse con la scala di "x" settata alla riga precedente
+            .attr("transform", function(d, i) { 
+                return "translate(" + ((numberOfTraits - i - 1) * size + 20)+",0)"; 
+            })
+            .each(function(d) {
+                xScale.domain(domainByTrait[d]);
+                d3.select(this).call(xAxis);
             });
 
-         svg.selectAll(".y.axis")
-         .data(traits)
-         .enter().append("g")
-             .attr("class", "y axis")
-             .attr("transform", function(d, i) { return "translate(0," + i * size + ")"; })
-         .each(function(d) { y.domain(domainByTrait[d]); d3.select(this).call(yAxis); });
-
-         var cell;
-         cell = svg.selectAll(".cell")
-             .data(cross(traits, traits)) //d3.cross returns an array of arrays representing the Cartesian product of the given iterables. For example, given two arrays A and B, it returns an array of pairs [a, b] for each a in A and b in B.
+        svg.selectAll(".y.axis").remove();
+        svg.selectAll(".y.axis")
+        .data(traits)
+        .enter()
+        .append("g")
+            .attr("class", "y axis")
+            .attr("transform", function(d, i) {
+                return "translate(20," + i * size+")"; 
+            })
+            .each(function(d) { yScale.domain(domainByTrait[d]); d3.select(this).call(yAxis); });
+    }
+    
+    function updatePoints(){
+        svg.selectAll(".cell").remove();
+        let cell = svg.selectAll(".cell")
+            .data(cross(traits, traits))
              //quindi abbiamo tutte le possibili coppie tra le varie dimensioni, ora creo il "g" che ospita il grafichino
-             .enter().append("g")
-                 .attr("class", "cell")
-                 .attr("transform", function(d) { return "translate(" + (numberOfTraits - d.i - 1) * size + "," + d.j * size + ")"; })
+            .enter().append("g")
+                .attr("class", "cell")
+                .attr("transform", function(d) { 
+                    return "translate(" + ((numberOfTraits - d.i - 1) * size +20) + "," + d.j * size + ")"; })
              //creo il grafichino
-             .each(plot);
+            .each(plot);
 
-             cell.filter(function(d) { return d.i === d.j; }) //toglie quelle uguali
-             .append("text")
-                 .attr("x", padding)
-                 .attr("y", padding)
-                 .attr("dy", ".71em")
-             .text(function(d) { return d.x; });
-    })
+            cell.filter(function(d) { return d.i === d.j; }) //toglie quelle uguali
+            .append("text")
+                .attr("x", padding)
+                .attr("y", padding)
+                .attr("dy", ".71em")
+            .text(function(d) { return d.x; });
+            cell.filter(function (d) {
+                return d.i === d.j;
+            })
+            
+
+    }
+    function updateLegend(){
+        svg.selectAll('.legend').remove();
+        var legend = svg.selectAll('.legend')
+              .data(color.domain())
+              .enter()
+              .append('g')
+              .attr('class', 'legend')
+              .attr('transform', function (d, i) {
+                var height = legendRectSize + legendSpacing;
+                var offset = height * color.domain().length / 2;
+                var horz = size * 4 + padding;
+                var vert = i * height + offset;
+                return 'translate(' + horz + ',' + vert + ')';
+              });
+            legend.append('rect')
+              .attr('width', legendRectSize)
+              .attr('height', legendRectSize)
+              .style('fill', color)
+              .style('stroke', color);
      
+            legend.append('text')
+              .attr('x', legendRectSize + legendSpacing)
+              .attr('y', legendRectSize - legendSpacing)
+              .text(function (d) {
+                return d;
+              });
+
+    }
+    function update(){
+        updateScales();
+        updateAxis();
+        updatePoints();
+        updateLegend();
+    }
     return (
-        <div className="bg-secondary p-4">
-            <svg ref={(node) => { console.log("render"); refSvg = node; }} width={size * numberOfTraits + padding} height={size * numberOfTraits + padding}>
-                <text transform={`translate(${props.margin.left},15)`}>{props.title}</text>
+        <div className="p-4">
+            <svg ref={(node) => { refSvg = node; }} width={size * numberOfTraits + padding + legendRectSize + legendSpacing + 125} height={size * numberOfTraits + padding}>
+                {/*<text transform={`translate(${props.margin.left},15)`}>{props.title}</text>*/}
                 
             </svg>
         </div>
@@ -120,6 +169,7 @@ ScatterPlot.propTypes = {
     data : PropTypes.array,
     dims: PropTypes.array,
     padding: PropTypes.number,
+    size: PropTypes.number,
     width: PropTypes.number,
     height: PropTypes.number,
     radius: PropTypes.number,
@@ -135,6 +185,7 @@ ScatterPlot.propTypes = {
 ScatterPlot.defaultProps = {
     data: [{ x: 10, y: 20, z: 10, h: 20 }, { x: 15, y: 35, z: 15, h: 26  }],
     padding: 20,
+    size: 300,
     width: 600,
     height: 600,
     radius: 5,
