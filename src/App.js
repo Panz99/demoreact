@@ -32,7 +32,6 @@ function App() {
     
     let data = [];
     newData.forEach(val =>{
-      
       var line = new Object();
       for (let i = 0; i < val.data.length; i++) {
         line[dims[i].value] = val.data[i]

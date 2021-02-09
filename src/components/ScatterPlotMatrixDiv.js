@@ -12,16 +12,6 @@ export default function ScatterPlotMatrixDiv (props) {
     const [Dims, setDims] = useState(keys.slice(0, 4));
     const [DimColore, setDimColore] = useState(keys[4] ? keys[4] : "-")
     
-    /*let allData = [];
-    data.map((line) => {
-        var obj = new Object();
-        if(Dim1!="-"){ obj[Dim1] = line[Dim1];}
-        if(Dim2!="-"){ obj[Dim2] = line[Dim2];}
-        if(Dim3!="-"){ obj[Dim3] = line[Dim3];}
-        if(Dim4!="-"){ obj[Dim4] = line[Dim4];}
-        allData.push(obj);
-    });*/
-
     //Per l'aggiornamento delle dimensioni nelle label delle select quando cambia file
     useEffect(() => {
         setDim1(keys[0] ? keys[0] : "-")
@@ -38,14 +28,6 @@ export default function ScatterPlotMatrixDiv (props) {
         if(Dim3!="-"){ temp.push(Dim3);}
         if(Dim4!="-"){ temp.push(Dim4);}
         setDims(temp);
-        /*data.map((line) => {
-            var obj = new Object();
-            if(Dim1!="-"){ obj[Dim1] = line[Dim1];}
-            if(Dim2!="-"){ obj[Dim2] = line[Dim2];}
-            if(Dim3!="-"){ obj[Dim3] = line[Dim3];}
-            if(Dim4!="-"){ obj[Dim4] = line[Dim4];}
-            allData.push(obj);
-        });*/
     }, [Dim1, Dim2, Dim3, Dim4])
 
     //Funzione che non permette di selezionare più volte la stessa dimensione
@@ -76,7 +58,7 @@ export default function ScatterPlotMatrixDiv (props) {
     // Store all of the data to be plotted
     return (
         <div>
-            <div className="d-inline-flex p-3">
+            <div className="d-inline-flex flex-wrap p-3">
                 {/* First Dimension Select Menu */}
                 <div className="m-2">
                     <label htmlFor="d1">First Dimension:</label>

@@ -4,7 +4,13 @@ import { CSVReader } from 'react-papaparse'
 
 export default function MyCSVReader( props ){
   function handleOnDrop(data){
-    props.onChange(data);
+    //remove empty lines
+    let notNullData=[];
+    data.forEach(line => {
+      if(line.data.length > 1 || line.data[0]!="")
+        notNullData.push(line)
+    });
+    props.onChange(notNullData);
   }
 
   function handleOnError(err, /*file, inputElem, reason*/){

@@ -4,11 +4,11 @@ import PropTypes from 'prop-types';
 import { select} from "d3";
 
 
-export default function ScatterPlot (props) {
+export default function ScatterPlotMatrix (props) {
     
     //Sono i riferimenti ai g che ho costruito nel return.
     let refSvg, svg;
-    let xAxis, yAxis, xScale, yScale, domainByTrait={};
+    let xAxis, yAxis, domainByTrait={}, yScales={}, xScales={};
     const size = props.size, padding = props.padding, legendRectSize = 18, legendSpacing = 4;
     const data = props.data;
     const color = d3.scaleOrdinal(d3.schemeCategory10);
@@ -28,10 +28,6 @@ export default function ScatterPlot (props) {
     
     function plot(p) {
         var cell = d3.select(this);
-
-        xScale.domain(domainByTrait[p.x]);
-        yScale.domain(domainByTrait[p.y]);
-
         cell.append("rect")
             .attr("class", "frame")
             .attr("x", padding / 2)
@@ -42,9 +38,10 @@ export default function ScatterPlot (props) {
         cell.selectAll("circle")
             .data(data)
             .enter().append("circle")
-                .attr("cx", function(d) { return xScale(d[p.x]); })
-                .attr("cy", function(d) { return yScale(d[p.y]); })
+                .attr("cx", function(d) { return xScales[p.x](d[p.x]); })
+                .attr("cy", function(d) { return yScales[p.y](d[p.y]); })
                 .attr("r", 4)
+                .transition().duration(500)
                 .style("fill", function(d) { return color(d[props.dimColor]); });
     }
     useEffect(() => {
@@ -54,24 +51,23 @@ export default function ScatterPlot (props) {
     function updateScales(){
         traits.forEach(function(trait) {
             domainByTrait[trait] = d3.extent(data, function(d) {return +d[trait]; });
+            let xScale, yScale;
+            if(domainByTrait[trait][0] || domainByTrait[trait][0]==0){//controllo se il minore è un numero
+                xScale=d3.scaleLinear().domain(domainByTrait[trait])
+                yScale=d3.scaleLinear().domain(domainByTrait[trait])
+            }else{
+                let domain = props.data.map(l => l[trait]);
+                xScale=d3.scalePoint().domain([... new Set(domain)])
+                yScale=d3.scalePoint().domain([... new Set(domain)])
+            }
+            xScale.range([padding / 2, size - padding / 2]);
+            yScale.range([size - padding / 2, padding / 2]);
+            xScales[trait]=xScale;
+            yScales[trait]=yScale;
         }); //calcola i massimi e i minimi
-        console.log(domainByTrait)
-        xScale = d3.scaleLinear()
-                .range([padding / 2, size - padding / 2]);
-
-        yScale = d3.scaleLinear()
-                .range([size - padding / 2, padding / 2]);
+        
     }
     function updateAxis(){
-
-        xAxis = d3.axisBottom(xScale)
-                .ticks(6) //quante tacchette sull'asse
-                .tickSize(size * numberOfTraits);
-        
-        yAxis = d3.axisLeft(yScale)
-                .ticks(6)
-                .tickSize(-size * numberOfTraits);
-
         svg.selectAll(".x.axis").remove();
         svg.selectAll(".x.axis")
         .data(traits) 
@@ -79,10 +75,12 @@ export default function ScatterPlot (props) {
         .append("g") 
             .attr("class", "x axis")
             .attr("transform", function(d, i) { 
-                return "translate(" + ((numberOfTraits - i - 1) * size + 20)+",0)"; 
+                return "translate(" + (i * size + 20)+",0)"; 
             })
             .each(function(d) {
-                xScale.domain(domainByTrait[d]);
+                xAxis = d3.axisBottom(xScales[d])
+                    .ticks(6) //quante tacchette sull'asse
+                    .tickSize(size * numberOfTraits);
                 d3.select(this).call(xAxis);
             });
 
@@ -95,9 +93,13 @@ export default function ScatterPlot (props) {
             .attr("transform", function(d, i) {
                 return "translate(20," + i * size+")"; 
             })
-            .each(function(d) { yScale.domain(domainByTrait[d]); d3.select(this).call(yAxis); });
+            .each(function(d) { 
+                yAxis = d3.axisLeft(yScales[d])
+                    .ticks(6)
+                    .tickSize(-size * numberOfTraits);
+                d3.select(this).call(yAxis); 
+            });
     }
-    
     function updatePoints(){
         svg.selectAll(".cell").remove();
         let cell = svg.selectAll(".cell")
@@ -106,7 +108,7 @@ export default function ScatterPlot (props) {
             .enter().append("g")
                 .attr("class", "cell")
                 .attr("transform", function(d) { 
-                    return "translate(" + ((numberOfTraits - d.i - 1) * size +20) + "," + d.j * size + ")"; })
+                    return "translate(" + (d.i * size +20) + "," + d.j * size + ")"; })
              //creo il grafichino
             .each(plot);
 
@@ -125,17 +127,17 @@ export default function ScatterPlot (props) {
     function updateLegend(){
         svg.selectAll('.legend').remove();
         var legend = svg.selectAll('.legend')
-              .data(color.domain())
-              .enter()
-              .append('g')
-              .attr('class', 'legend')
-              .attr('transform', function (d, i) {
+            .data(color.domain())
+            .enter()
+            .append('g')
+            .attr('class', 'legend')
+            .attr('transform', function (d, i) {
                 var height = legendRectSize + legendSpacing;
-                var offset = height * color.domain().length / 2;
-                var horz = size * 4 + padding;
+                var offset = padding;
+                var horz = size * numberOfTraits + padding;
                 var vert = i * height + offset;
                 return 'translate(' + horz + ',' + vert + ')';
-              });
+            });
             legend.append('rect')
               .attr('width', legendRectSize)
               .attr('height', legendRectSize)
@@ -158,20 +160,16 @@ export default function ScatterPlot (props) {
     }
     return (
         <div className="p-4">
-            <svg ref={(node) => { refSvg = node; }} width={size * numberOfTraits + padding + legendRectSize + legendSpacing + 125} height={size * numberOfTraits + padding}>
-                {/*<text transform={`translate(${props.margin.left},15)`}>{props.title}</text>*/}
-                
+            <svg ref={(node) => { refSvg = node; }} width={size * numberOfTraits + padding + legendRectSize + 125} height={size * numberOfTraits + padding}>
             </svg>
         </div>
     )
 }
-ScatterPlot.propTypes = {
+ScatterPlotMatrix.propTypes = {
     data : PropTypes.array,
     dims: PropTypes.array,
     padding: PropTypes.number,
     size: PropTypes.number,
-    width: PropTypes.number,
-    height: PropTypes.number,
     radius: PropTypes.number,
     color: PropTypes.string,
     margin: PropTypes.object,
@@ -182,12 +180,10 @@ ScatterPlot.propTypes = {
     dimColor: PropTypes.string,
     title: PropTypes.string
 }
-ScatterPlot.defaultProps = {
+ScatterPlotMatrix.defaultProps = {
     data: [{ x: 10, y: 20, z: 10, h: 20 }, { x: 15, y: 35, z: 15, h: 26  }],
     padding: 20,
-    size: 300,
-    width: 600,
-    height: 600,
+    size: 150,
     radius: 5,
     color: "blue",
     margin: {

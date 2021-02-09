@@ -64,7 +64,7 @@ svg{
 }
 
 circle {
-  fill-opacity: .7;
+  fill-opacity: .5;
 }
 
 circle.hidden {
