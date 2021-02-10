@@ -1,9 +1,11 @@
 import './App.css';
 import React, {useState, useEffect} from "react";
+import * as druid from '@saehrimnir/druidjs';
 import MyCSVReader from './components/CsvReader.js';
 import DimensionsList from './components/DimList.js';
 import ScatterPlotDiv from './components/ScatterPlotDiv';
 import ScatterPlotMatrixDiv from './components/ScatterPlotMatrixDiv';
+
 
 
 function App() {
@@ -68,6 +70,23 @@ function App() {
     setTest2(true);
     setTest(false);
   }
+  function reduxDims(){
+    console.log("Data:", uData);
+    let sendedData = [];
+    uData.forEach(obj => {
+      let row =[]
+      Object.keys(obj).forEach(key => {
+        if(!isNaN(+obj[key]))
+          row.push(+obj[key]);
+      });
+      sendedData.push(row);
+    });
+    let matrix = druid.Matrix.from(sendedData);
+    const X = matrix; // X is the data as object of the Matrix class.
+    let pca = new druid.PCA(X, 2);
+    let transData = pca.transform();
+    console.log("Riduzione PCA:", transData.to2dArray)
+  }
   
   return (
     <div className="App">
@@ -82,11 +101,13 @@ function App() {
         </div>
         <DimensionsList dims={dims} updateDims={handleChangeDims}/>
         <hr/>
+        <button className="btn btn-primary m-2" onClick={reduxDims}>Redux Dims</button>
+        <hr/>
         <button className="btn btn-primary m-2" onClick={showGraph}>Show graph</button>
         {test ?
           (<ScatterPlotDiv data={uData}/>) : (null)
         }
-        <button className="btn btn-primary m-2" onClick={showGraph2}>Show graph</button>
+        <button className="btn btn-primary m-2" onClick={showGraph2}>Show matrix graph</button>
         {test2 ?
           (<ScatterPlotMatrixDiv data={uData}/>) : (null)
         }

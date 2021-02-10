@@ -46,6 +46,7 @@ export default function ScatterPlotMatrix (props) {
     }
     useEffect(() => {
         svg = select(refSvg);
+        svg.attr("viewBox", "0 0 " + (size * numberOfTraits + padding + legendRectSize + 125) + " " + (size * numberOfTraits + padding))
         update();
     })
     function updateScales(){
@@ -160,7 +161,7 @@ export default function ScatterPlotMatrix (props) {
     }
     return (
         <div className="p-4">
-            <svg ref={(node) => { refSvg = node; }} width={size * numberOfTraits + padding + legendRectSize + 125} height={size * numberOfTraits + padding}>
+            <svg ref={(node) => { refSvg = node; }} >
             </svg>
         </div>
     )
@@ -183,7 +184,7 @@ ScatterPlotMatrix.propTypes = {
 ScatterPlotMatrix.defaultProps = {
     data: [{ x: 10, y: 20, z: 10, h: 20 }, { x: 15, y: 35, z: 15, h: 26  }],
     padding: 20,
-    size: 150,
+    size: 300,
     radius: 5,
     color: "blue",
     margin: {
