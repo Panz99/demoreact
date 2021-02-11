@@ -4,13 +4,19 @@ import { CSVReader } from 'react-papaparse'
 
 export default function MyCSVReader( props ){
   function handleOnDrop(data){
-    //remove empty lines
-    let notNullData=[];
-    data.forEach(line => {
-      if(line.data.length > 1 || line.data[0]!="")
-        notNullData.push(line)
+    //prendo il file ricevuto dal reader e preparo i data e le columns
+    let columns = data.shift().data, parsedData = [];
+    data.forEach(val =>{
+      var line = new Object();
+      if(val.data.length > 1 || val.data[0]!=""){ //controllo se il dato ha almeno un valore non nullo
+        for (let i = 0; i < val.data.length; i++) {
+          line[columns[i]] = (+val.data[i]) ? +val.data[i] : val.data[i];
+        }
+        parsedData.push(line);
+      }
     });
-    props.onChange(notNullData);
+    let dims = columns.map((tempDim) => ({"value": tempDim, "isChecked": true, "isNumeric": (+parsedData[0][tempDim]) ? true : false}))
+    props.onChange(parsedData, dims);
   }
 
   function handleOnError(err, /*file, inputElem, reason*/){
@@ -18,10 +24,7 @@ export default function MyCSVReader( props ){
   }
 
   function handleOnRemoveFile(data){
-    console.log('---------------------------')
-    console.log(data)
     props.onChange(data)
-    console.log('---------------------------')
   }
 
     return (

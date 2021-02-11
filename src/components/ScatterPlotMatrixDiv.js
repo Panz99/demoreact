@@ -4,52 +4,26 @@ import ScatterPlotMatrix from "./SPM";
 
 export default function ScatterPlotMatrixDiv (props) {
     const data = props.data;
+    const dims = props.dims;
     const keys = Object.keys(props.data[0]);
-    const [Dim1, setDim1] = useState(keys[0] ? keys[0] : "-");
-    const [Dim2, setDim2] = useState(keys[1] ? keys[1] : "-");
-    const [Dim3, setDim3] = useState(keys[2] ? keys[2] : "-");
-    const [Dim4, setDim4] = useState(keys[3] ? keys[3] : "-");
-    const [Dims, setDims] = useState(keys.slice(0, 4));
-    const [DimColore, setDimColore] = useState(keys[4] ? keys[4] : "-")
+    const catKeys = dims.filter(dim => !dim.isNumeric).map((d) => d.value);
     
+    const [Dims, setDims] = useState(keys.slice(0, 4));
+    const [DimColore, setDimColore] = useState(catKeys[0] ? catKeys[0] : "-")
+    console.log(catKeys);
     //Per l'aggiornamento delle dimensioni nelle label delle select quando cambia file
     useEffect(() => {
-        setDim1(keys[0] ? keys[0] : "-")
-        setDim2(keys[1] ? keys[1] : "-")
-        setDim3(keys[2] ? keys[2] : "-")
-        setDim4(keys[3] ? keys[3] : "-")
-        setDimColore(keys[4] ? keys[4] : "-")
+        setDims(keys.slice(0, 4));
+        setDimColore(catKeys[0] ? catKeys[0] : "-");
     }, [data])
-    //Per l'aggiornamento dei dati da mandare allo SPM quando cambiano le dimensioni
-    useEffect(() => {
-        let temp=[];
-        if(Dim1!="-"){ temp.push(Dim1);}
-        if(Dim2!="-"){ temp.push(Dim2);}
-        if(Dim3!="-"){ temp.push(Dim3);}
-        if(Dim4!="-"){ temp.push(Dim4);}
-        setDims(temp);
-    }, [Dim1, Dim2, Dim3, Dim4])
 
     //Funzione che non permette di selezionare più volte la stessa dimensione
     function handeSelectChange(e){
         let v = e.target.value;
-        if((v!=Dim1 && v!=Dim2 && v!=Dim3 && v!=Dim4) || v=="-"){
-            switch (e.target.id) {
-                case "d1":
-                    setDim1(v);
-                    break;
-                case "d2":
-                    setDim2(v);
-                    break;
-                case "d3":
-                    setDim3(v);
-                    break;
-                case "d4":
-                    setDim4(v);
-                    break;
-                default:
-                    break;
-            }
+        if(!Dims.includes(v)|| v=="-"){
+            let newDims = [...Dims];
+            newDims[e.target.id.slice(-1)] = v;
+            setDims(newDims);
         }else{
             alert("non puoi selezionare la stessa dimensione più volte");
         }
@@ -61,8 +35,8 @@ export default function ScatterPlotMatrixDiv (props) {
             <div className="d-inline-flex flex-wrap p-3">
                 {/* First Dimension Select Menu */}
                 <div className="m-2">
-                    <label htmlFor="d1">First Dimension:</label>
-                    <select id="d1" value={Dim1} className="form-select" onChange={handeSelectChange}>
+                    <label htmlFor="selectDim0">First Dimension:</label>
+                    <select id="selectDim0" value={Dims[0]} className="form-select" onChange={handeSelectChange}>
                         <option key={"null"}>-</option>
                         {keys.map((d) => {
                                 return <option key={d}>{d}</option>
@@ -71,8 +45,8 @@ export default function ScatterPlotMatrixDiv (props) {
                 </div>
                 {/* First Dimension Select Menu */}
                 <div className="m-2">
-                    <label htmlFor="d2">Second Dimension:</label>
-                    <select id="d2" value={Dim2} className="form-select" onChange={handeSelectChange}>
+                    <label htmlFor="selectDim1">Second Dimension:</label>
+                    <select id="selectDim1" value={Dims[1]} className="form-select" onChange={handeSelectChange}>
                         <option key={"null"}>-</option>
                         {keys.map((d) => {
                                 return <option key={d}>{d}</option>
@@ -81,8 +55,8 @@ export default function ScatterPlotMatrixDiv (props) {
                 </div>
                 {/* First Dimension Select Menu */}
                 <div className="m-2">
-                    <label htmlFor="d3">Third Dimension:</label>
-                    <select id="d3" value={Dim3} className="form-select" onChange={handeSelectChange}>
+                    <label htmlFor="selectDim2">Third Dimension:</label>
+                    <select id="selectDim2" value={Dims[2]} className="form-select" onChange={handeSelectChange}>
                         <option key={"null"}>-</option>
                         {keys.map((d) => {
                                 return <option key={d}>{d}</option>
@@ -91,8 +65,8 @@ export default function ScatterPlotMatrixDiv (props) {
                 </div>
                 {/* First Dimension Select Menu */}
                 <div className="m-2">
-                    <label htmlFor="d4">Fourth Dimension:</label>
-                    <select id="d4" value={Dim4} className="form-select" onChange={handeSelectChange}>
+                    <label htmlFor="selectDim3">Fourth Dimension:</label>
+                    <select id="selectDim3" value={Dims[3]} className="form-select" onChange={handeSelectChange}>
                         <option key={"null"}>-</option>
                         {keys.map((d) => {
                                 return <option key={d}>{d}</option>
@@ -104,7 +78,7 @@ export default function ScatterPlotMatrixDiv (props) {
                     <label htmlFor="dCol">Color Dimension:</label>
                     <select id="dCol" value={DimColore} className="form-select" onChange={(d) => setDimColore(d.target.value)}>
                         <option key={"null"}>-</option>
-                        {keys.map((d) => {
+                        {catKeys.map((d) => {
                                 return <option key={d}>{d}</option>
                         })}
                     </select>
@@ -112,10 +86,6 @@ export default function ScatterPlotMatrixDiv (props) {
             </div>
             {/* Render scatter plot*/}
             <ScatterPlotMatrix
-                dim1Title={Dim1}
-                dim2Title={Dim2}
-                dim3Title={Dim3}
-                dim4Title={Dim3}
                 dimColor={DimColore}
                 data={data}
                 dims={Dims}
@@ -126,4 +96,5 @@ export default function ScatterPlotMatrixDiv (props) {
 
 ScatterPlotMatrixDiv.propTypes = {
     data : PropTypes.array,
+    dims: PropTypes.array
 }

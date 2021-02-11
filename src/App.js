@@ -9,39 +9,31 @@ import ScatterPlotMatrixDiv from './components/ScatterPlotMatrixDiv';
 
 
 function App() {
-  const [data, setData] = useState([]);
-  const [dims, setDims] = useState([]);
-  const [uData, setUData] = useState([]);
+  const [data, setData] = useState([]); //array di oggetti {dim1: numeric, dim2: "string"}
+  const [dims, setDims] = useState([]); //array di oggetti  {value: "string", isChecked: bool, isNumeric: bool}
+  const [uData, setUData] = useState([]); //array di oggetti {dim1: numeric, dim2: "string"} con solo le dim selezionate
+  const [graphDims, setGraphDims] = useState([]); //array di oggetti con dimensioni original + ridotte
+  const [graphData, setGraphData] = useState([]); //array di oggetti con dimensioni originali + ridotte
   const [test, setTest] = useState(false);
   const [test2, setTest2] = useState(false);
   useEffect(() => {
     syncDimsData();
   }, [dims]);
 
-  function handleDataLoad(newData){
+  async function handleDataLoad(newData, newColumns){
+    setTest(false);
+    setTest2(false);
+    //se viene richiamato il metodo quando si elimina il file
     if(newData == null){
       setDims([]);
       setData([]);
       setUData([]);
-      setTest(false);
       return;
     }
-    let tempDims = newData.shift();
-    let dims = [];
-    tempDims.data.forEach(tempDim => {
-      dims.push({"value": tempDim, "isChecked": true});
-    });
-    
-    let data = [];
-    newData.forEach(val =>{
-      var line = new Object();
-      for (let i = 0; i < val.data.length; i++) {
-        line[dims[i].value] = val.data[i]
-      }
-      data.push(line);
-    });
-    setData(data);
-    setDims(dims);
+    console.log("Dati ricevuti:",newData);
+    console.log("Dimensioni ricevute:", newColumns);
+    setData(newData);
+    setDims(newColumns);
   }
 
   function syncDimsData(){
@@ -71,21 +63,35 @@ function App() {
     setTest(false);
   }
   function reduxDims(){
-    console.log("Data:", uData);
     let sendedData = [];
+    let numericKey = dims.filter(dim => dim.isNumeric && dim.isChecked).map((d) => d.value);
     uData.forEach(obj => {
-      let row =[]
-      Object.keys(obj).forEach(key => {
-        if(!isNaN(+obj[key]))
-          row.push(+obj[key]);
+      let row = [];
+      numericKey.forEach(key =>{
+        if(!isNaN(obj[key]))
+          row.push(obj[key]);
       });
       sendedData.push(row);
     });
     let matrix = druid.Matrix.from(sendedData);
     const X = matrix; // X is the data as object of the Matrix class.
     let pca = new druid.PCA(X, 2);
-    let transData = pca.transform();
-    console.log("Riduzione PCA:", transData.to2dArray)
+    let transData = pca.transform().to2dArray;
+    let tempdims = [...dims], tempdata=[];
+    tempdims.push({"value": "pca1", "isChecked": true, "isNumeric": true});
+    tempdims.push({"value": "pca2", "isChecked": true, "isNumeric": true});
+    setGraphDims(tempdims);
+    let data = [...uData]
+    for (let i = 0; i < uData.length; i++) {
+      let line = data[i];
+      line["pca1"] = transData[i][0];
+      line["pca2"] = transData[i][1]; 
+      tempdata.push(line);
+    }
+    setGraphData(tempdata);
+    console.log("Riduzione PCA:", transData);
+    console.log("Graph data:", graphData);
+    console.log("Graph dims:", graphDims);
   }
   
   return (
@@ -109,7 +115,7 @@ function App() {
         }
         <button className="btn btn-primary m-2" onClick={showGraph2}>Show matrix graph</button>
         {test2 ?
-          (<ScatterPlotMatrixDiv data={uData}/>) : (null)
+          (<ScatterPlotMatrixDiv data={graphData} dims={graphDims}/>) : (null)
         }
       </header>
     </div>
