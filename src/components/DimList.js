@@ -46,7 +46,7 @@ export default function DimensionsList( props ){
             }
             <ul className="list-group list-group-horizontal d-inline-flex flex-wrap flex-fill">
                 {
-                    props.dims.map((dim)=>{
+                    props.dims.filter(dim => !dim.isRedux).map((dim)=>{
                         return (<CheckBox key={dim.value} handleCheckChieldElement={handleCheckChieldElement} {...dim} />)
                     })
                 }

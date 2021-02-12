@@ -5,7 +5,7 @@ import ScatterPlotMatrix from "./SPM";
 export default function ScatterPlotMatrixDiv (props) {
     const data = props.data;
     const dims = props.dims;
-    const keys = Object.keys(props.data[0]);
+    const keys = dims.filter(dim => dim.isChecked).map((d) => d.value);
     const catKeys = dims.filter(dim => !dim.isNumeric).map((d) => d.value);
     
     const [Dims, setDims] = useState(keys.slice(0, 4));
