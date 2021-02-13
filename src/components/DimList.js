@@ -37,8 +37,7 @@ export default function DimensionsList( props ){
         props.updateDims(dims);
     }
     return(
-        <div className="w-75">
-            <h4>Lista dimensioni</h4>
+        <div>
             {dataLoaded ? 
                 (<li className="list-group-item text-secondary" key="checkall">
                     <input className="form-check-input" key="checkall" checked={allChecked} type="checkbox" value="checkedall" id="checkAll" onChange={handleAllChecked} /><label htmlFor="checkAll" className="h-6">Seleziona tutto</label> 

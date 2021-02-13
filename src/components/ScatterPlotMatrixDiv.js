@@ -10,7 +10,6 @@ export default function ScatterPlotMatrixDiv (props) {
     
     const [Dims, setDims] = useState(keys.slice(0, 4));
     const [DimColore, setDimColore] = useState(catKeys[0] ? catKeys[0] : "-")
-    console.log(catKeys);
     //Per l'aggiornamento delle dimensioni nelle label delle select quando cambia file
     useEffect(() => {
         setDims(keys.slice(0, 4));
@@ -88,7 +87,7 @@ export default function ScatterPlotMatrixDiv (props) {
             <ScatterPlotMatrix
                 dimColor={DimColore}
                 data={data}
-                dims={Dims}
+                dims={Dims.filter((d) => d!="-")}
                     />
         </div>
     )

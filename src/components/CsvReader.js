@@ -8,9 +8,12 @@ export default function MyCSVReader( props ){
     let columns = data.shift().data, parsedData = [];
     data.forEach(val =>{
       var line = new Object();
-      if(val.data.length > 1 || val.data[0]!=""){ //controllo se il dato ha almeno un valore non nullo
+      if(val.data!=""){ //controllo se il dato ha valori
         for (let i = 0; i < val.data.length; i++) {
-          line[columns[i]] = (+val.data[i]) ? +val.data[i] : val.data[i];
+          if(val.data[i]=="")
+            line[columns[i]] = "undefined";     //se un campo é vuoto lo metto ad undefined
+          else
+            line[columns[i]] = (+val.data[i]) ? +val.data[i] : val.data[i];
         }
         parsedData.push(line);
       }

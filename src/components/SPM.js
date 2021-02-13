@@ -38,10 +38,10 @@ export default function ScatterPlotMatrix (props) {
         cell.selectAll("circle")
             .data(data)
             .enter().append("circle")
+                .transition().duration(500)
                 .attr("cx", function(d) { return xScales[p.x](d[p.x]); })
                 .attr("cy", function(d) { return yScales[p.y](d[p.y]); })
                 .attr("r", 4)
-                .transition().duration(500)
                 .style("fill", function(d) { return color(d[props.dimColor]); });
     }
     useEffect(() => {
