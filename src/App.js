@@ -1,7 +1,7 @@
 import './App.css';
 import logo from './logo.svg';
 import React, {useState, useEffect} from "react";
-//import * as druid from '@saehrimnir/druidjs';
+import * as druid from '@saehrimnir/druidjs';
 import MyCSVReader from './components/CsvReader.js';
 import DimensionsList from './components/DimList.js';
 import ScatterPlotDiv from './components/ScatterPlotDiv';
@@ -17,14 +17,14 @@ function App() {
   const [data, setData] = useState([]); //array di oggetti {dim1: numeric, dim2: "string"}
   const [dims, setDims] = useState([]); //array di oggetti  {value: "string", isChecked: bool, isNumeric: bool, isRedux: bool}
   const [uData, setUData] = useState([]); //array di oggetti {dim1: numeric, dim2: "string"} con solo le dim selezionate
-  const [graphData, setGraphData] = useState([]); //array di oggetti con dimensioni originali + ridotte
+  const [syncDim, setSyncDim] = useState(0);
   const [test, setTest] = useState(false);
   const [test2, setTest2] = useState(false);
   useEffect(() => {
     syncDimsData();
     setTest(false);
     setTest2(false);
-  }, [dims]);
+  }, [syncDim]);
 
   function handleDataLoad(newData, newColumns){
     setTest(false);
@@ -38,28 +38,32 @@ function App() {
     }
     setData(newData);
     setDims(newColumns);
+    setSyncDim(syncDim+1)
   }
   function haveNanValue(d){
-    const numeric_checkedDims = dims.filter(dim => dim.isChecked && dim.isNumeric).map((d) => d.value);
+    const numeric_checkedDims = dims.filter(dim => dim.isChecked && dim.isNumeric && !dim.isRedux).map((d) => d.value);
     let not_nan = true;
     numeric_checkedDims.forEach(dim => {
       if(isNaN(d[dim])){
         not_nan = false;
-        return
+        return;
       }
     }); 
     return not_nan;
   }
   function syncDimsData(){
-    const checkedDims = dims.filter(dim => dim.isChecked).map((d) => d.value);  //array con i nomi delle dimensioni checked
+    console.log("syncDimData");
+    const checkedDims = dims.filter(dim => dim.isChecked && !dim.isRedux).map((d) => d.value);  //array con i nomi delle dimensioni checked
     let aux = data.map(d => {    //con filter tolgo i dati che hanno alcune dimensioni numeriche selezionate NaN; e con map prendo le dimensioni selezionate
         return Object.fromEntries(checkedDims.map(dim => [dim, d[dim]]))
      }).filter(haveNanValue);
     setUData(aux);
-    setGraphData(aux);
+    const removedReduxDims = dims.filter(dim => !dim.isRedux);
+    setDims(removedReduxDims);
   }
   function handleChangeDims(newDims){
     setDims(newDims);
+    setSyncDim(syncDim+1)
   }
   function showGraph(){
     setTest(true);
@@ -70,39 +74,42 @@ function App() {
     setTest2(true);
     setTest(false);
   }
-
   function reduxDims(){
     //Array con dimensioni numeriche e selezionate
     const numericDims = dims.filter(dim => dim.isNumeric && dim.isChecked).map((d) => d.value);
+    const catDims = dims.filter(dim => !dim.isNumeric && dim.isChecked).map((d) => d.value);
     //Dati con dimensioni numeriche e selezionate
-    let sendedData = uData.map(obj => {
-      return Object.fromEntries(numericDims.map((dim) => [dim, obj[dim]]))
+    const sendedData = uData.map(obj => {
+      return Array.from(numericDims.map((dim) => obj[dim]))
     });
-    console.log(sendedData);
-    //VANNO RIMOSSI I VALORI NaN da sendedData
-    /*let matrix = druid.Matrix.from(sendedData);
-    const X = matrix; // X is the data as object of the Matrix class.
-    let pca = new druid.PCA(X, 2);
-    let transData = pca.transform().to2dArray;
-
-    */
+    //Dati con dimensioni categoriche e selezionate
+    const label = uData.map(obj =>{
+      return Array.from(catDims.map((dim) => obj[dim]))
+    });
+    //Matrix.from vuole un Array di array, senza quindi le chiavi delle dimensioni
+    //Sendend data é un array del tipo [[1,2,3], [2,3,4], [5,6,7]]
+    const matrix = druid.Matrix.from(sendedData); //matrix é un oggetto con campo column, row e data, con data array di valori [1,2,3,4,5,6,7,..]
+    const DR = "LDA";
+    let dr = new druid[DR](matrix, label.map(d => d[0]));
+    const Y = dr.transform()  //IMPORTANTISSIMO ASSEGNARLO AD UN CONST
+    //Aggiorno l'array delle dimensioni con le dimensioni ridotte
+    
     let tempdims = [...dims];
-    tempdims.push({"value": "pca1", "isChecked": true, "isNumeric": true, "isRedux" : true});
-    tempdims.push({"value": "pca2", "isChecked": true, "isNumeric": true, "isRedux" : true});
-    console.log(tempdims)
-    setDims(tempdims);
-    /*setGraphDims(tempdims);
-    let data = [...uData]
-    for (let i = 0; i < uData.length; i++) {
-      let line = data[i];
-      line["pca1"] = transData[i][0];
-      line["pca2"] = transData[i][1]; 
-      tempdata.push(line);
+    for (let i = 1; i <= Y._cols; i++) {
+      tempdims.push({"value": (DR+i), "isChecked": true, "isNumeric": true, "isRedux" : true});
     }
-    setGraphData(tempdata);
-    console.log("Riduzione PCA:", transData);
-    console.log("Graph data:", graphData);
-    console.log("Graph dims:", graphDims);*/
+    const reduxDims = tempdims.filter(d => d.isRedux).map(d => d.value);
+    let tempdata = [...uData];
+    for(let i = 0; i<uData.length; i++){
+      let data = tempdata[i];
+      let j=0;
+      reduxDims.forEach(dim => {
+        data[dim] = Y.to2dArray[i][j]
+        j++
+      });
+    }
+    setUData(tempdata);
+    setDims(tempdims);
   }
   
   return (
@@ -128,7 +135,6 @@ function App() {
           <button className="btn btn-primary m-2" onClick={() =>{console.log(data)}}>Log Data</button>
           <button className="btn btn-primary m-2" onClick={() =>{console.log(dims)}}>Log Dimension</button>
           <button className="btn btn-primary m-2" onClick={() =>{console.log(uData)}}>Log Used Data</button>
-          <button className="btn btn-primary m-2" onClick={() =>{console.log(graphData)}}>Log GraphData</button>
         </div>
         <hr/>
         <div className="w-75 mx-auto">
@@ -138,11 +144,11 @@ function App() {
         <hr/>
         <h2>Riduzione dimensionale</h2>
         <div className="w-75 mx-auto d-inline-flex">
-          <DimensionsList dims={dims}/>
+          <DimensionsList dims={dims.filter(d => d.isChecked)}/>
           <select id="algRedux" className="form-select">
             <option>PCA</option>
           </select>
-          <button className="btn btn-primary m-2" onClick={() =>{console.log("Effettua riduzione")}}>Effettua riduzione Fake</button>
+          <button className="btn btn-primary m-2" onClick={() =>{"Effettua riduzione Fake"}}>Effettua riduzione Fake</button>
           <button className="btn btn-primary m-2" onClick={reduxDims}>Redux Dims</button>
         </div>
         <hr/>
@@ -154,7 +160,7 @@ function App() {
             (<div className="w-75 mx-auto"><ScatterPlotDiv data={uData}/></div>) : (null)
           }
           {test2 ?
-            (<div className="w-75 mx-auto"><ScatterPlotMatrixDiv data={graphData} dims={dims}/></div>) : (null)
+            (<div className="w-75 mx-auto"><ScatterPlotMatrixDiv data={uData} dims={dims}/></div>) : (null)
           }
       </div>
     </div>

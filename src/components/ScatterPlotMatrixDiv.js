@@ -6,7 +6,7 @@ export default function ScatterPlotMatrixDiv (props) {
     const data = props.data;
     const dims = props.dims;
     const keys = dims.filter(dim => dim.isChecked).map((d) => d.value);
-    const catKeys = dims.filter(dim => !dim.isNumeric).map((d) => d.value);
+    const catKeys = dims.filter(dim => !dim.isNumeric && dim.isChecked).map((d) => d.value);
     
     const [Dims, setDims] = useState(keys.slice(0, 4));
     const [DimColore, setDimColore] = useState(catKeys[0] ? catKeys[0] : "-")
