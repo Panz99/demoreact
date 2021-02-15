@@ -4,6 +4,7 @@ import React, {useState, useEffect} from "react";
 import * as druid from '@saehrimnir/druidjs';
 import MyCSVReader from './components/CsvReader.js';
 import DimensionsList from './components/DimList.js';
+import DimensionsListRedux from './components/DimList2.js';
 import ScatterPlotDiv from './components/ScatterPlotDiv';
 import ScatterPlotMatrixDiv from './components/ScatterPlotMatrixDiv';
 
@@ -17,16 +18,21 @@ function App() {
   const [data, setData] = useState([]); //array di oggetti {dim1: numeric, dim2: "string"}
   const [dims, setDims] = useState([]); //array di oggetti  {value: "string", isChecked: bool, isNumeric: bool, isRedux: bool}
   const [uData, setUData] = useState([]); //array di oggetti {dim1: numeric, dim2: "string"} con solo le dim selezionate
-  const [syncDim, setSyncDim] = useState(0);
+  const [nCNRDims, setNCNRDims] = useState(0);  //numero di dimensioni selezionate e non ridotte
+  const [drAlgo, setDrAlgo] = useState("FASTMAP");
+  const [neighbors, setNeighbors] = useState(30);
   const [test, setTest] = useState(false);
   const [test2, setTest2] = useState(false);
   useEffect(() => {
-    syncDimsData();
     setTest(false);
     setTest2(false);
-  }, [syncDim]);
+  }, [dims]);
 
-  function handleDataLoad(newData, newColumns){
+  useEffect(() => {
+    syncDimsData();
+  }, [nCNRDims])
+
+  async function handleDataLoad(newData, newColumns){
     setTest(false);
     setTest2(false);
     //se viene richiamato il metodo quando si elimina il file
@@ -38,7 +44,7 @@ function App() {
     }
     setData(newData);
     setDims(newColumns);
-    setSyncDim(syncDim+1)
+    setNCNRDims(newColumns.filter(d => d.isChecked && !d.isRedux).length);
   }
   function haveNanValue(d){
     const numeric_checkedDims = dims.filter(dim => dim.isChecked && dim.isNumeric && !dim.isRedux).map((d) => d.value);
@@ -52,7 +58,6 @@ function App() {
     return not_nan;
   }
   function syncDimsData(){
-    console.log("syncDimData");
     const checkedDims = dims.filter(dim => dim.isChecked && !dim.isRedux).map((d) => d.value);  //array con i nomi delle dimensioni checked
     let aux = data.map(d => {    //con filter tolgo i dati che hanno alcune dimensioni numeriche selezionate NaN; e con map prendo le dimensioni selezionate
         return Object.fromEntries(checkedDims.map(dim => [dim, d[dim]]))
@@ -63,44 +68,61 @@ function App() {
   }
   function handleChangeDims(newDims){
     setDims(newDims);
-    setSyncDim(syncDim+1)
+    setNCNRDims(newDims.filter(d => d.isChecked && !d.isRedux).length);
+    console.log(newDims.filter(d => d.isChecked && !d.isRedux).length)
   }
   function showGraph(){
     setTest(true);
     setTest2(false);
   }
-  
   function showGraph2(){
     setTest2(true);
     setTest(false);
   }
   function reduxDims(){
     //Array con dimensioni numeriche e selezionate
-    const numericDims = dims.filter(dim => dim.isNumeric && dim.isChecked).map((d) => d.value);
-    const catDims = dims.filter(dim => !dim.isNumeric && dim.isChecked).map((d) => d.value);
+    const numericDims = dims.filter(dim => dim.isNumeric && dim.isChecked && !dim.isRedux && dim.toRedux).map((d) => d.value);
+    //const catDims = dims.filter(dim => !dim.isNumeric && dim.isChecked).map((d) => d.value);
     //Dati con dimensioni numeriche e selezionate
     const sendedData = uData.map(obj => {
       return Array.from(numericDims.map((dim) => obj[dim]))
     });
     //Dati con dimensioni categoriche e selezionate
-    const label = uData.map(obj =>{
+    /*const label = uData.map(obj =>{
       return Array.from(catDims.map((dim) => obj[dim]))
-    });
+    });*/
     //Matrix.from vuole un Array di array, senza quindi le chiavi delle dimensioni
     //Sendend data é un array del tipo [[1,2,3], [2,3,4], [5,6,7]]
-    const matrix = druid.Matrix.from(sendedData); //matrix é un oggetto con campo column, row e data, con data array di valori [1,2,3,4,5,6,7,..]
-    const DR = "LDA";
-    let dr = new druid[DR](matrix, label.map(d => d[0]));
-    const Y = dr.transform()  //IMPORTANTISSIMO ASSEGNARLO AD UN CONST
+    //label.map(d => d[0])
+    function dr(){
+      const X = druid.Matrix.from(sendedData); // X un oggetto con campo column, row e data, con data array di valori [1,2,3,4,5,6,7,..]
+      const DR = druid[drAlgo]; // DR is the selected DR class
+      //const P = get_parameters(parameterization); // P is a array containing the parameters for DR.
+      switch(drAlgo){
+        case "FASTMAP":
+          return new DR(X);
+        default:
+          return new DR(X, neighbors);
+      }
+    }
+    let redux = dr();
+    const Y = redux.transform()  //IMPORTANTISSIMO ASSEGNARLO AD UN CONST
     //Aggiorno l'array delle dimensioni con le dimensioni ridotte
     
-    let tempdims = [...dims];
+    //Prendo tutte le dimensioni non ridotte
+    let tempdims = ([...dims]).filter(d => !d.isRedux);
+    //Prendo i dati non ridotti
+    let tempdata = uData.map((d) =>{
+      return Object.fromEntries(tempdims.map((dim => [dim.value, d[dim.value]])))
+    });
+    //aggiungo le nuove dimensioni ridotte
     for (let i = 1; i <= Y._cols; i++) {
-      tempdims.push({"value": (DR+i), "isChecked": true, "isNumeric": true, "isRedux" : true});
+      tempdims.push({"value": (drAlgo+i), "isChecked": true, "toRedux": false,"isNumeric": true, "isRedux" : true});
     }
+    //prendo le nuove dimensioni ridotte
     const reduxDims = tempdims.filter(d => d.isRedux).map(d => d.value);
-    let tempdata = [...uData];
-    for(let i = 0; i<uData.length; i++){
+    //aggiungo ad ogni dato i nuovi valori delle nuove dimensioni
+    for(let i = 0; i<tempdata.length; i++){
       let data = tempdata[i];
       let j=0;
       reduxDims.forEach(dim => {
@@ -108,10 +130,23 @@ function App() {
         j++
       });
     }
+    //aggiorno udata e dims con le nuove dimensioni e dati
     setUData(tempdata);
     setDims(tempdims);
+    alert("Riduzione effettuata con successo")
   }
-  
+  function renderParams(){
+    switch (drAlgo) {
+      case "FASTMAP":
+        return <span>Nessun parametro configurabile</span>;
+      case "ISOMAP":
+        return <label><input name="k" type="range" min={10} max={300} value={neighbors} onChange={(e) => setNeighbors(e.target.value)}/> neighbors <i>k</i><p>{neighbors}</p></label>;
+      case "LLE":
+        return <label><input name="k" type="range" min={10} max={300} value={neighbors} onChange={(e) => setNeighbors(e.target.value)}/> neighbors <i>k</i><p>{neighbors}</p></label>;
+      default:
+        return <span>Nulla configurabile</span>;
+    }
+  }
   return (
     <div className="App">
       <header className="App-header">
@@ -127,10 +162,11 @@ function App() {
             <button className="btn btn-primary m-2" onClick={() =>{console.log("Carica dati dal db")}}>Carica dati dal db</button>
           </div>
           <div className="d-flex flex-column">
-            <button className="btn btn-primary m-2" onClick={() =>{console.log("Carica dati dal db")}}>Carica dati dal db</button>
+            <button className="btn btn-primary m-2" onClick={() =>{console.log("Import Configurazione")}}>Import Configurazione</button>
             <button className="btn btn-primary m-2" onClick={() =>{console.log("Export Configurazione")}}>Export Configurazione</button>
           </div>
         </div>
+        <hr/>
         <div className="d-inline-flex">
           <button className="btn btn-primary m-2" onClick={() =>{console.log(data)}}>Log Data</button>
           <button className="btn btn-primary m-2" onClick={() =>{console.log(dims)}}>Log Dimension</button>
@@ -144,11 +180,15 @@ function App() {
         <hr/>
         <h2>Riduzione dimensionale</h2>
         <div className="w-75 mx-auto d-inline-flex">
-          <DimensionsList dims={dims.filter(d => d.isChecked)}/>
-          <select id="algRedux" className="form-select">
-            <option>PCA</option>
+          <DimensionsListRedux dims={dims} updateDims={handleChangeDims}/>
+          <select id="algRedux" value={drAlgo} className="form-select" onChange={(e) => setDrAlgo(e.target.value)}>
+            <option value={"FASTMAP"}>FASTMAP</option>
+            <option value={"LLE"}>LLE</option>
+            <option value={"ISOMAP"}>ISOMAP</option>
           </select>
-          <button className="btn btn-primary m-2" onClick={() =>{"Effettua riduzione Fake"}}>Effettua riduzione Fake</button>
+          {
+            renderParams()
+          }
           <button className="btn btn-primary m-2" onClick={reduxDims}>Redux Dims</button>
         </div>
         <hr/>

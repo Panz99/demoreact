@@ -18,7 +18,7 @@ export default function MyCSVReader( props ){
         parsedData.push(line);
       }
     });
-    let dims = columns.map((tempDim) => ({"value": tempDim, "isChecked": true, "isRedux": false ,"isNumeric": (+parsedData[0][tempDim]) ? true : false}))
+    let dims = columns.map((tempDim) => ({"value": tempDim, "isChecked": true, "toRedux": true, "isRedux": false ,"isNumeric": (+parsedData[0][tempDim]) ? true : false}))
     props.onChange(parsedData, dims);
   }
 

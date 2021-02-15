@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import CheckBox from "./CheckBox";
+import CheckBoxRedux from "./CheckBox2";
 import PropTypes from 'prop-types';
 
-export default function DimensionsList( props ){
+export default function DimensionsListRedux( props ){
     const [dataLoaded, setDataLoaded] = useState(false);
     const [allChecked, setAllChecked] = useState(true);
     
@@ -15,7 +15,7 @@ export default function DimensionsList( props ){
 
     function handleAllChecked (event) {
         let dims = [...props.dims];
-        dims.forEach(dim => dim.isChecked = event.target.checked);
+        dims.forEach(dim => dim.toRedux = event.target.checked);
         props.updateDims(dims);
         if(allChecked)
             setAllChecked(false)
@@ -27,9 +27,9 @@ export default function DimensionsList( props ){
         let dims = [...props.dims]
         dims.forEach(dim => {
             if (dim.value === event.target.value){
-                dim.isChecked =  event.target.checked;
+                dim.toRedux =  event.target.checked;
             }   
-            if (!dim.isChecked){
+            if (!dim.toRedux){
                 temp=false;
             }
         });
@@ -39,14 +39,14 @@ export default function DimensionsList( props ){
     return(
         <div>
             {dataLoaded ? 
-                (<li className="list-group-item text-secondary" key="checkall">
-                    <input className="form-check-input" key="checkall" checked={allChecked} type="checkbox" value="checkedall" id="checkAll" onChange={handleAllChecked} /><label htmlFor="checkAll" className="h-6">Seleziona tutto</label> 
+                (<li className="list-group-item text-secondary" key="checkall_r">
+                    <input className="form-check-input" key="checkall_r" checked={allChecked} type="checkbox" value="checkedall" id="checkAll" onChange={handleAllChecked} /><label htmlFor="checkAll" className="h-6">Seleziona tutto</label> 
                 </li> ) : (null)
             }
             <ul className="list-group list-group-horizontal d-inline-flex flex-wrap flex-fill">
                 {
-                    props.dims.filter(dim => !dim.isRedux).map((dim)=>{
-                        return (<CheckBox key={dim.value} handleCheckChieldElement={handleCheckChieldElement} {...dim} />)
+                    props.dims.filter(dim => !dim.isRedux && dim.isChecked).map((dim)=>{
+                        return (<CheckBoxRedux key={dim.value+"_r"} handleCheckChieldElement={handleCheckChieldElement} {...dim} />)
                     })
                 }
             </ul>
@@ -54,7 +54,7 @@ export default function DimensionsList( props ){
     );
 }
 
-DimensionsList.propTypes = {
+DimensionsListRedux.propTypes = {
     dims : PropTypes.array,
     updateDims : PropTypes.func,
     sender: PropTypes.string

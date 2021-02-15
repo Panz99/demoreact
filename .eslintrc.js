@@ -1,4 +1,4 @@
-module.exports = {
+module.exports = {  //eslint-disable-line
     "env": {
         "browser": true,
         "es2021": true
@@ -18,5 +18,6 @@ module.exports = {
         "react"
     ],
     "rules": {
+        "complexity": ["error", 20]
     }
 };
