@@ -32,7 +32,7 @@ function App() {
     syncDimsData();
   }, [nCNRDims])
 
-  async function handleDataLoad(newData, newColumns){
+  function handleDataLoad(newData, newColumns){
     setTest(false);
     setTest2(false);
     //se viene richiamato il metodo quando si elimina il file
@@ -69,7 +69,6 @@ function App() {
   function handleChangeDims(newDims){
     setDims(newDims);
     setNCNRDims(newDims.filter(d => d.isChecked && !d.isRedux).length);
-    console.log(newDims.filter(d => d.isChecked && !d.isRedux).length)
   }
   function showGraph(){
     setTest(true);
@@ -81,7 +80,7 @@ function App() {
   }
   function reduxDims(){
     //Array con dimensioni numeriche e selezionate
-    const numericDims = dims.filter(dim => dim.isNumeric && dim.isChecked && !dim.isRedux && dim.toRedux).map((d) => d.value);
+    const numericDims = dims.filter(dim => dim.isNumeric && dim.isChecked && dim.toRedux).map((d) => d.value);
     //const catDims = dims.filter(dim => !dim.isNumeric && dim.isChecked).map((d) => d.value);
     //Dati con dimensioni numeriche e selezionate
     const sendedData = uData.map(obj => {
@@ -100,6 +99,7 @@ function App() {
       //const P = get_parameters(parameterization); // P is a array containing the parameters for DR.
       switch(drAlgo){
         case "FASTMAP":
+        case "TSNE":
           return new DR(X);
         default:
           return new DR(X, neighbors);
@@ -110,23 +110,32 @@ function App() {
     //Aggiorno l'array delle dimensioni con le dimensioni ridotte
     
     //Prendo tutte le dimensioni non ridotte
-    let tempdims = ([...dims]).filter(d => !d.isRedux);
+    /*let tempdims = ([...dims]).filter(d => !d.isRedux);
     //Prendo i dati non ridotti
     let tempdata = uData.map((d) =>{
       return Object.fromEntries(tempdims.map((dim => [dim.value, d[dim.value]])))
-    });
+    });*/
     //aggiungo le nuove dimensioni ridotte
+    
+    let reduxDims = [];//Nuove dimensioni ridotte
     for (let i = 1; i <= Y._cols; i++) {
-      tempdims.push({"value": (drAlgo+i), "isChecked": true, "toRedux": false,"isNumeric": true, "isRedux" : true});
+      reduxDims.push({"value": (drAlgo+i), "isChecked": true, "toRedux": true,"isNumeric": true, "isRedux" : true});
     }
     //prendo le nuove dimensioni ridotte
-    const reduxDims = tempdims.filter(d => d.isRedux).map(d => d.value);
+    //const reduxDims = tempdims.filter(d => d.isRedux).map(d => d.value);
+    let tempdims=[...dims].filter(d => !d.value.includes(drAlgo));
+    console.log(tempdims);
+    let tempdata = uData.map((d) =>{
+      return Object.fromEntries(tempdims.map((dim => [dim.value, d[dim.value]])))
+    });
+    tempdims = tempdims.concat(reduxDims);
+    console.log(tempdims);
     //aggiungo ad ogni dato i nuovi valori delle nuove dimensioni
     for(let i = 0; i<tempdata.length; i++){
       let data = tempdata[i];
       let j=0;
       reduxDims.forEach(dim => {
-        data[dim] = Y.to2dArray[i][j]
+        data[dim.value] = Y.to2dArray[i][j]
         j++
       });
     }
@@ -138,6 +147,7 @@ function App() {
   function renderParams(){
     switch (drAlgo) {
       case "FASTMAP":
+      case "TSNE":
         return <span>Nessun parametro configurabile</span>;
       case "ISOMAP":
         return <label><input name="k" type="range" min={10} max={300} value={neighbors} onChange={(e) => setNeighbors(e.target.value)}/> neighbors <i>k</i><p>{neighbors}</p></label>;
@@ -185,6 +195,7 @@ function App() {
             <option value={"FASTMAP"}>FASTMAP</option>
             <option value={"LLE"}>LLE</option>
             <option value={"ISOMAP"}>ISOMAP</option>
+            <option value={"TSNE"}>TSNE</option>
           </select>
           {
             renderParams()
