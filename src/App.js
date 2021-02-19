@@ -23,6 +23,8 @@ function App() {
   const [neighbors, setNeighbors] = useState(30);
   const [test, setTest] = useState(false);
   const [test2, setTest2] = useState(false);
+  const [newDimName, setNewDimName] = useState("FASTMAP");
+  const [nNewDim, setNNewDim] = useState(2);
   useEffect(() => {
     setTest(false);
     setTest2(false);
@@ -79,20 +81,12 @@ function App() {
     setTest(false);
   }
   function reduxDims(){
-    //Array con dimensioni numeriche e selezionate
+    //Array con dimensioni numeriche e selezionate e da ridurre
     const numericDims = dims.filter(dim => dim.isNumeric && dim.isChecked && dim.toRedux).map((d) => d.value);
-    //const catDims = dims.filter(dim => !dim.isNumeric && dim.isChecked).map((d) => d.value);
-    //Dati con dimensioni numeriche e selezionate
+    //Dati con dimensioni numeriche e selezionate e da ridurre
     const sendedData = uData.map(obj => {
       return Array.from(numericDims.map((dim) => obj[dim]))
     });
-    //Dati con dimensioni categoriche e selezionate
-    /*const label = uData.map(obj =>{
-      return Array.from(catDims.map((dim) => obj[dim]))
-    });*/
-    //Matrix.from vuole un Array di array, senza quindi le chiavi delle dimensioni
-    //Sendend data é un array del tipo [[1,2,3], [2,3,4], [5,6,7]]
-    //label.map(d => d[0])
     function dr(){
       const X = druid.Matrix.from(sendedData); // X un oggetto con campo column, row e data, con data array di valori [1,2,3,4,5,6,7,..]
       const DR = druid[drAlgo]; // DR is the selected DR class
@@ -100,36 +94,25 @@ function App() {
       switch(drAlgo){
         case "FASTMAP":
         case "TSNE":
-          return new DR(X);
+          return new DR(X, nNewDim);
         default:
-          return new DR(X, neighbors);
+          return new DR(X, nNewDim, neighbors);
       }
     }
     let redux = dr();
     const Y = redux.transform()  //IMPORTANTISSIMO ASSEGNARLO AD UN CONST
     //Aggiorno l'array delle dimensioni con le dimensioni ridotte
     
-    //Prendo tutte le dimensioni non ridotte
-    /*let tempdims = ([...dims]).filter(d => !d.isRedux);
-    //Prendo i dati non ridotti
-    let tempdata = uData.map((d) =>{
-      return Object.fromEntries(tempdims.map((dim => [dim.value, d[dim.value]])))
-    });*/
-    //aggiungo le nuove dimensioni ridotte
-    
     let reduxDims = [];//Nuove dimensioni ridotte
     for (let i = 1; i <= Y._cols; i++) {
-      reduxDims.push({"value": (drAlgo+i), "isChecked": true, "toRedux": true,"isNumeric": true, "isRedux" : true});
+      reduxDims.push({"value": (newDimName+i), "isChecked": true, "toRedux": true,"isNumeric": true, "isRedux" : true});
     }
-    //prendo le nuove dimensioni ridotte
-    //const reduxDims = tempdims.filter(d => d.isRedux).map(d => d.value);
-    let tempdims=[...dims].filter(d => !d.value.includes(drAlgo));
-    console.log(tempdims);
+    let tempdims=[...dims].filter(d => !d.value.includes(newDimName));
+
     let tempdata = uData.map((d) =>{
       return Object.fromEntries(tempdims.map((dim => [dim.value, d[dim.value]])))
     });
     tempdims = tempdims.concat(reduxDims);
-    console.log(tempdims);
     //aggiungo ad ogni dato i nuovi valori delle nuove dimensioni
     for(let i = 0; i<tempdata.length; i++){
       let data = tempdata[i];
@@ -150,12 +133,33 @@ function App() {
       case "TSNE":
         return <span>Nessun parametro configurabile</span>;
       case "ISOMAP":
-        return <label><input name="k" type="range" min={10} max={300} value={neighbors} onChange={(e) => setNeighbors(e.target.value)}/> neighbors <i>k</i><p>{neighbors}</p></label>;
+        return <label><input name="k" type="range" min={10} max={300} value={neighbors} onChange={changeNeighbours}/> neighbors <i>k</i><p>{neighbors}</p></label>;
       case "LLE":
-        return <label><input name="k" type="range" min={10} max={300} value={neighbors} onChange={(e) => setNeighbors(e.target.value)}/> neighbors <i>k</i><p>{neighbors}</p></label>;
+        return <label><input name="k" type="range" min={10} max={300} value={neighbors} onChange={changeNeighbours}/> neighbors <i>k</i><p>{neighbors}</p></label>;
       default:
         return <span>Nulla configurabile</span>;
     }
+  }
+  function changeNeighbours(e){
+    setTest(false);
+    setTest2(false);
+    setNeighbors(e.target.value);
+  }
+  function changeAlgo(e){
+    setTest(false);
+    setTest2(false);
+    setNewDimName(e.target.value)
+    setDrAlgo(e.target.value)
+  }
+  function changeNewDimName(e){
+    setTest(false);
+    setTest2(false);
+    setNewDimName(e.target.value)
+  }
+  function changeNNewDim(e){
+    setTest(false);
+    setTest2(false);
+    setNNewDim(e.target.value)
   }
   return (
     <div className="App">
@@ -191,15 +195,23 @@ function App() {
         <h2>Riduzione dimensionale</h2>
         <div className="w-75 mx-auto d-inline-flex">
           <DimensionsListRedux dims={dims} updateDims={handleChangeDims}/>
-          <select id="algRedux" value={drAlgo} className="form-select" onChange={(e) => setDrAlgo(e.target.value)}>
+          <select id="algRedux" value={drAlgo} className="form-select" onChange={changeAlgo}>
             <option value={"FASTMAP"}>FASTMAP</option>
             <option value={"LLE"}>LLE</option>
             <option value={"ISOMAP"}>ISOMAP</option>
             <option value={"TSNE"}>TSNE</option>
           </select>
-          {
+          <div>
+            <label forhtml="dimName">Nome della/e nuove diemensioni</label>
+            <input id="dimName" type="text" onChange={changeNewDimName} value={newDimName}></input>
+            <label forhtml="nNewDim">Dimensioni di ritorno</label>
+            <input id="nNewDim" type="number" onChange={changeNNewDim} value={nNewDim}></input>
+            <br/>
+            {
             renderParams()
-          }
+            }
+          </div>
+          
           <button className="btn btn-primary m-2" onClick={reduxDims}>Redux Dims</button>
         </div>
         <hr/>
