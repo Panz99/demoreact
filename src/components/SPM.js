@@ -46,7 +46,9 @@ export default function ScatterPlotMatrix (props) {
     }
     useEffect(() => {
         svg = select(refSvg);
-        svg.attr("viewBox", "0 0 " + (size * numberOfTraits + padding + legendRectSize + 125) + " " + (size * numberOfTraits + padding))
+        svg.attr("width", (size * numberOfTraits + padding + legendRectSize + 125))
+        svg.attr("height", (size * numberOfTraits + padding))
+        //svg.attr("viewBox", "0 0 " + (size * numberOfTraits + padding + legendRectSize + 125) + " " + (size * numberOfTraits + padding))
         update();
     })
     function updateScales(){
@@ -105,24 +107,22 @@ export default function ScatterPlotMatrix (props) {
         svg.selectAll(".cell").remove();
         let cell = svg.selectAll(".cell")
             .data(cross(traits, traits))
-             //quindi abbiamo tutte le possibili coppie tra le varie dimensioni, ora creo il "g" che ospita il grafichino
-            .enter().append("g")
+             //quindi abbiamo tutte le possibili coppie tra le varie dimensioni selezionate
+            .enter().append("g")    //aggiungo un oggetto per ogni coppia
                 .attr("class", "cell")
                 .attr("transform", function(d) { 
                     return "translate(" + (d.i * size +20) + "," + d.j * size + ")"; })
-             //creo il grafichino
+             //creo il grafico in due dimensioni per ogni oggetto
             .each(plot);
-
-            cell.filter(function(d) { return d.i === d.j; }) //toglie quelle uguali
+            
+            //seleziono le celle con le due dimensioni uguali
+            //a queste celle aggiungo una label con il testo
+            cell.filter(function(d) { return d.i === d.j; }) 
             .append("text")
                 .attr("x", padding)
                 .attr("y", padding)
                 .attr("dy", ".71em")
             .text(function(d) { return d.x; });
-            cell.filter(function (d) {
-                return d.i === d.j;
-            })
-            
 
     }
     function updateLegend(){
@@ -184,7 +184,7 @@ ScatterPlotMatrix.propTypes = {
 ScatterPlotMatrix.defaultProps = {
     data: [{ x: 10, y: 20, z: 10, h: 20 }, { x: 15, y: 35, z: 15, h: 26  }],
     padding: 20,
-    size: 300,
+    size: 180,
     radius: 5,
     color: "blue",
     margin: {

@@ -88,9 +88,11 @@ function App() {
       return Array.from(numericDims.map((dim) => obj[dim]))
     });
     function dr(){
-      const X = druid.Matrix.from(sendedData); // X un oggetto con campo column, row e data, con data array di valori [1,2,3,4,5,6,7,..]
-      const DR = druid[drAlgo]; // DR is the selected DR class
-      //const P = get_parameters(parameterization); // P is a array containing the parameters for DR.
+      // Matrice con i dati delle dimensioni da ridurre
+      const X = druid.Matrix.from(sendedData); 
+      // DR é l'algoritmo scelto dall'utente
+      const DR = druid[drAlgo]; 
+      //costruisco l'oggetto di riduzione dimensionale
       switch(drAlgo){
         case "FASTMAP":
         case "TSNE":
@@ -100,8 +102,9 @@ function App() {
       }
     }
     let redux = dr();
-    const Y = redux.transform()  //IMPORTANTISSIMO ASSEGNARLO AD UN CONST
+    const Y = redux.transform()  //Con transform applico la riduzione
     //Aggiorno l'array delle dimensioni con le dimensioni ridotte
+    //Aggiorno l'array dei dati con i dati ricevuti dalla riduzione
     
     let reduxDims = [];//Nuove dimensioni ridotte
     for (let i = 1; i <= Y._cols; i++) {
@@ -193,7 +196,7 @@ function App() {
         </div>
         <hr/>
         <h2>Riduzione dimensionale</h2>
-        <div className="w-75 mx-auto d-inline-flex">
+        <div className="w-75 mx-auto d-flex justify-content-between align-items-center">
           <DimensionsListRedux dims={dims} updateDims={handleChangeDims}/>
           <select id="algRedux" value={drAlgo} className="form-select" onChange={changeAlgo}>
             <option value={"FASTMAP"}>FASTMAP</option>
@@ -201,8 +204,8 @@ function App() {
             <option value={"ISOMAP"}>ISOMAP</option>
             <option value={"TSNE"}>TSNE</option>
           </select>
-          <div>
-            <label forhtml="dimName">Nome della/e nuove diemensioni</label>
+          <div className="d-flex flex-column">
+            <label forhtml="dimName">Nome della/e nuove dimensioni</label>
             <input id="dimName" type="text" onChange={changeNewDimName} value={newDimName}></input>
             <label forhtml="nNewDim">Dimensioni di ritorno</label>
             <input id="nNewDim" type="number" onChange={changeNNewDim} value={nNewDim}></input>
