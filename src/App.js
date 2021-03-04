@@ -98,7 +98,7 @@ function App() {
         case "TSNE":
           return new DR(X, nNewDim);
         default:
-          return new DR(X, nNewDim, neighbors);
+          return new DR(X, neighbors, nNewDim);
       }
     }
     let redux = dr();
